@@ -10,6 +10,8 @@ const userRoutes = require('./routes/userRoutes');
 dotenv.config();
 
 const app = express();
+// Enable trust proxy so rate limiters track the actual user's IP, not Render's Load Balancer IP
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
