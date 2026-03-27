@@ -1,14 +1,35 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const dns = require('dns');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+};
+
+const validateEmailDomain = (email) => {
+  return new Promise((resolve) => {
+    const domain = email.split('@')[1];
+    if (!domain) return resolve(false);
+    dns.resolveMx(domain, (err, addresses) => {
+      if (err || addresses.length === 0) resolve(false);
+      else resolve(true);
+    });
+  });
 };
 
 exports.signup = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    const isDomainValid = await validateEmailDomain(email);
+    if (!isDomainValid) {
+      return res.status(400).json({ message: 'Email domain does not exist or cannot receive emails' });
+    }
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
